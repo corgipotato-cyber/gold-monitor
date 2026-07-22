@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>黄金价格趋势监测</title>
+<meta name="description" content="流量定价体制框架下的黄金价格趋势公开监测看板：锚缺口、流量乘数、CTA 模拟仓位、金银相关象限与 13 周情景推演。每日自动更新。">
+<style>
+:root{
+  --daimon-widget-host-safe-inline-end:190px;--daimon-widget-host-safe-block-start:44px;
+  /* Kimi 设计令牌 · light（等价替换 var(--kimi-color-*) 运行时注入） */
+  --kimi-color-background:#ffffff;
+  --kimi-color-text-primary:#1f2329;
+  --kimi-color-text-secondary:#4e5562;
+  --kimi-color-text-tertiary:#8a8f99;
+  --kimi-color-text-quaternary:#b3b8c2;
+  --kimi-color-border:#e6e8ec;
+  --kimi-color-surface-muted:#f4f5f7;
+  --kimi-color-accent:#4d6bfe;
+  --kimi-color-positive:#16a34a;
+  --kimi-color-danger:#dc2626;
+  --kimi-color-warning:#d97706;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --kimi-color-background:#16181d;
+    --kimi-color-text-primary:#e8eaed;
+    --kimi-color-text-secondary:#b0b6c0;
+    --kimi-color-text-tertiary:#8a9099;
+    --kimi-color-text-quaternary:#5f6672;
+    --kimi-color-border:#2e323a;
+    --kimi-color-surface-muted:#21252c;
+    --kimi-color-accent:#7f9aff;
+    --kimi-color-positive:#34c47c;
+    --kimi-color-danger:#ef5f6b;
+    --kimi-color-warning:#e8a13d;
+  }
+}
+.kimi-host-safe-context{container-type:inline-size;}
+.kimi-host-safe-header{box-sizing:border-box;min-block-size:var(--daimon-widget-host-safe-block-start,44px);padding-inline-end:var(--daimon-widget-host-safe-inline-end,190px);}
+@container (max-width:419px){.kimi-host-safe-header{min-block-size:0;padding-block-start:var(--daimon-widget-host-safe-block-start,44px);padding-inline-end:0;}}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--kimi-color-background);}
+body{
+  font-family:var(--kimi-font-sans,system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif);
+  color:var(--kimi-color-text-primary);
+  font-size:13px;line-height:1.5;letter-spacing:0;
+  padding:4px 14px 18px;
+}
+main{max-width:1120px;}
+h1{font-size:17px;font-weight:650;}
+.meta{color:var(--kimi-color-text-tertiary);font-size:11.5px;margin-top:2px;}
+h2.sec{font-size:13.5px;font-weight:600;margin:20px 0 8px;color:var(--kimi-color-text-primary);}
+.mono{font-family:var(--kimi-font-mono,ui-monospace,monospace);}
+.num{font-variant-numeric:tabular-nums;}
+
+#status-pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;margin-left:6px;}
+#status-pill.running{background:color-mix(in srgb,var(--kimi-color-warning) 18%,transparent);color:var(--kimi-color-warning);}
+#status-pill.error{background:color-mix(in srgb,var(--kimi-color-danger) 15%,transparent);color:var(--kimi-color-danger);}
+#status-pill.ok{background:color-mix(in srgb,var(--kimi-color-positive) 15%,transparent);color:var(--kimi-color-positive);}
+
+/* P0 */
+.p0{display:flex;flex-wrap:wrap;gap:16px 36px;align-items:flex-end;margin-top:10px;padding-bottom:14px;border-bottom:1px solid var(--kimi-color-border);}
+.price-block output{display:block;font-size:34px;font-weight:680;line-height:1.1;font-variant-numeric:tabular-nums;}
+.price-block .unit{font-size:11.5px;color:var(--kimi-color-text-tertiary);}
+.chg{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;}
+.chg.up{color:var(--kimi-color-positive);}
+.chg.down{color:var(--kimi-color-danger);}
+.regime-block h2{font-size:15px;font-weight:650;line-height:1.35;}
+.regime-block .stage-tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:4px;background:color-mix(in srgb,var(--kimi-color-warning) 16%,transparent);color:var(--kimi-color-warning);margin-bottom:4px;}
+.confirm-line{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:2px 9px;border-radius:99px;background:var(--kimi-color-surface-muted);color:var(--kimi-color-text-secondary);}
+.chip .dot{width:7px;height:7px;border-radius:50%;}
+.dot.ok{background:var(--kimi-color-positive);}
+.dot.no{background:var(--kimi-color-danger);}
+.confirm-count{font-size:12px;font-weight:650;color:var(--kimi-color-text-secondary);}
+.action-hint{width:100%;font-size:12px;color:var(--kimi-color-text-secondary);margin-top:8px;}
+
+/* indicator cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px;}
+.card{background:var(--kimi-color-surface-muted);border-radius:10px;padding:10px 12px;min-width:0;}
+.card .clabel{font-size:11.5px;color:var(--kimi-color-text-tertiary);display:flex;align-items:center;gap:6px;}
+.card .cvalue{display:block;font-size:20px;font-weight:660;line-height:1.2;margin-top:3px;font-variant-numeric:tabular-nums;}
+.card .csub{font-size:11px;color:var(--kimi-color-text-secondary);margin-top:3px;line-height:1.45;}
+
+/* charts */
+.chart-box{margin-top:6px;}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--kimi-color-text-secondary);margin:6px 0 2px;}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block;}
+svg{display:block;width:100%;height:auto;}
+
+/* scenarios */
+.scenarios{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px;}
+.scn{border-radius:10px;padding:10px 12px;background:var(--kimi-color-surface-muted);border-left:3px solid var(--kimi-color-text-quaternary);}
+.scn.bull{border-left-color:var(--kimi-color-positive);}
+.scn.base{border-left-color:var(--kimi-color-accent);}
+.scn.bear{border-left-color:var(--kimi-color-danger);}
+.scn .sname{font-size:12.5px;font-weight:650;}
+.scn .sprob{float:right;font-size:12px;font-weight:660;color:var(--kimi-color-text-secondary);font-variant-numeric:tabular-nums;}
+.scn .send{margin-top:4px;font-size:16px;font-weight:660;font-variant-numeric:tabular-nums;}
+.scn .sret{font-size:12px;font-weight:600;margin-left:6px;}
+.scn .sdesc{font-size:11.5px;color:var(--kimi-color-text-secondary);margin-top:5px;line-height:1.5;}
+.method-note{font-size:11px;color:var(--kimi-color-text-tertiary);margin-top:8px;}
+
+/* minis */
+.minis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:6px;}
+.mini{background:var(--kimi-color-surface-muted);border-radius:10px;padding:9px 12px;}
+.mini .mtitle{font-size:11.5px;color:var(--kimi-color-text-tertiary);display:flex;justify-content:space-between;gap:8px;}
+.mini .mval{font-size:14px;font-weight:660;color:var(--kimi-color-text-primary);font-variant-numeric:tabular-nums;}
+
+/* events table */
+.table-wrap{margin-top:6px;overflow-x:auto;}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:12px;font-variant-numeric:tabular-nums;}
+th{font-weight:600;color:var(--kimi-color-text-tertiary);text-align:right;padding:5px 8px;border-bottom:1px solid var(--kimi-color-border);white-space:nowrap;}
+th:first-child,td:first-child{text-align:left;}
+td{padding:5px 8px;border-bottom:1px solid var(--kimi-color-border);text-align:right;color:var(--kimi-color-text-secondary);}
+td.pos{color:var(--kimi-color-positive);}
+td.neg{color:var(--kimi-color-danger);}
+tr:last-child td{border-bottom:none;}
+
+/* caveats */
+footer{margin-top:18px;padding-top:10px;border-top:1px solid var(--kimi-color-border);}
+footer p{font-size:11px;color:var(--kimi-color-text-quaternary);line-height:1.6;}
+footer p b{color:var(--kimi-color-text-tertiary);font-weight:600;}
+
+/* compact tier */
+html[data-daimon-size-tier="compact"] [data-kimi-priority="p1"],
+html[data-daimon-size-tier="compact"] [data-kimi-priority="p2"],
+html[data-daimon-size-tier="compact"] [data-kimi-priority="p3"]{display:none;}
+html[data-daimon-size-tier="compact"] .price-block output{font-size:26px;}
+html[data-daimon-size-tier="compact"] .regime-block h2{font-size:13px;}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+</style>
+</head>
+<body>
+<main class="kimi-host-safe-context" data-kimi-root>
+  <header class="kimi-host-safe-header">
+    <h1>黄金价格趋势监测</h1>
+    <p class="meta">流量定价体制框架 · 数据截至 <span id="asof" class="num"></span><span id="status-pill" class="ok">每日自动更新</span></p>
+    <p class="meta"><a id="repo-link" href="#" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">GitHub 仓库</a> · 公开数据源 akshare / FRED / CFTC · Actions 定时刷新</p>
+  </header>
+
+  <section class="p0" data-kimi-priority="p0" aria-label="核心状态">
+    <div class="price-block">
+      <output id="p-price" class="num">—</output>
+      <span class="unit">美元/盎司 · 上海金合成（±0.5%跟踪误差） · 周涨跌 <span id="p-chg" class="chg num"></span></span>
+    </div>
+    <div class="regime-block">
+      <span class="stage-tag" id="p-stagetag">定价体制</span>
+      <h2 id="p-stage">—</h2>
+      <div class="confirm-line" id="p-chips"></div>
+      <p class="action-hint" data-kimi-priority="p1" id="p-hint"></p>
+    </div>
+  </section>
+
+  <section class="cards" data-kimi-priority="p1" id="cards" aria-label="关键指标"></section>
+
+  <section data-kimi-priority="p2">
+    <h2 class="sec">金价 vs 旧锚隐含水平 · 未来 13 周情景扇形</h2>
+    <div class="legend" id="main-legend"></div>
+    <div class="chart-box" id="chart-main" role="img" aria-label="金价走势与情景预判图"></div>
+    <div class="scenarios" id="scenarios"></div>
+    <p class="method-note" id="method-note"></p>
+
+    <h2 class="sec">指标走势（近 156 周）</h2>
+    <div class="minis" id="minis"></div>
+
+    <h2 class="sec">历史急跌事件复盘 · 8/8 事件 T+20 收益为正</h2>
+    <div class="table-wrap"><table id="events" aria-label="急跌事件表"></table></div>
+  </section>
+
+  <footer data-kimi-priority="p3" id="caveats"></footer>
+</main>
+
+<script>
+const INITIAL_DATA = {
+ "as_of": "2026-07-21",
+ "generated_at": "2026-07-22T13:27:07+08:00",
+ "price": {
+  "gold_usd": 4071.3,
+  "gold_cny": 886.95,
+  "silver_usd": 66.1,
+  "usdcny": 6.776,
+  "tips": 2.35,
+  "week_chg_pct": 1.66,
+  "drawdown_from_high_pct": -14.31,
+  "high_60d": 4751.2,
+  "ma60": 4356.9,
+  "above_ma60": false
+ },
+ "indicators": {
+  "anchor_gap": {
+   "pct": 371.3,
+   "peak_pct": 480.9,
+   "peak_date": "2026-01-29",
+   "alpha": 7.2894,
+   "beta": -0.2247,
+   "r2_fit": 0.861
+  },
+  "flow_multiplier": {
+   "latest_bp": 4.7,
+   "mean_bp": 24.5,
+   "full_sample_bp": 23.0,
+   "min_note": "滚动 52 周窗口；最新值低位=期货通道边际定价影响减弱，卖压来自 CTA 棒"
+  },
+  "cta": {
+   "pos": -0.33,
+   "pos_percentile": 7.8,
+   "flip_count": 3,
+   "signals": {
+    "ma20": 1,
+    "ma60": -1,
+    "ma120": -1,
+    "ma252": -1
+   },
+   "vol20_ann": 0.184
+  },
+  "correlation": {
+   "corr_12w": 0.91,
+   "percentile": 100.0,
+   "direction": "down",
+   "quadrant": "high_down"
+  },
+  "drawdown": {
+   "current_pct": -14.31,
+   "in_event": true,
+   "event_start": "2026-05-28"
+  },
+  "confirmation": {
+   "flip_ok": false,
+   "corr_ok": false,
+   "ma60_ok": false,
+   "count": 0
+  }
+ },
+ "regime": {
+  "stage": "L3 出清观察窗口（CTA 出清完毕，等待新买家）",
+  "desc": "CTA 仓位降至 3 年低分位、期货乘数低位、族内无差别抛售尾段（高相关+下跌象限）、锚缺口自峰值回落——卖压按机械顺序释放完毕，定价权等待新买家接棒。",
+  "action_hint": "满足 ≥2 条确认信号（翻空≤2/4、相关分位<90、收复MA60）可重建仓位；当前满足 0/3 条。监测优于预测——周频看板回答『市场在哪个世界』。"
+ },
+ "forecast": {
+  "horizon_weeks": 13,
+  "method_note": "方向性情景推演，非点预测（报告纪律：监测优于预测）。情景锚=G4 象限统计（表5，硬编码）；路径=对数正态桥接，端点收益按情景、噪声形状匹配当前 20 日已实现波动率（√t 扩散）；分位带由三情景按主观概率加权混合生成。",
+  "quadrant_anchor": {
+   "key": "high_down",
+   "ret12w": 19.3,
+   "maxdd": -6.3,
+   "n": 11,
+   "note": "无差别抛售=投降式出清指纹"
+  },
+  "scenarios": [
+   {
+    "key": "bear",
+    "name": "悲观·滞后翻空阴跌",
+    "prob": 0.3,
+    "end_price": 3758.3,
+    "end_ret_pct": -7.7,
+    "desc": "滞后翻空阴跌：CTA 4/4 翻空的卖压是进行时（2026-03-23 确认、滞后 49 交易日），反弹被机械卖出压制；参考 2022-03 事件 T+40 -5.1%。"
+   },
+   {
+    "key": "base",
+    "name": "基准·同象限历史均值",
+    "prob": 0.48,
+    "end_price": 4938.0,
+    "end_ret_pct": 21.3,
+    "desc": "历史同象限均值路径（无差别抛售=投降式出清指纹，n=11）：先 -6.3% 回撤、后 19.3% 反弹——无差别抛售是投降式出清指纹，央行购金构成缺口中枢的地板。"
+   },
+   {
+    "key": "bull",
+    "name": "乐观·V型修复",
+    "prob": 0.22,
+    "end_price": 5349.3,
+    "end_ret_pct": 31.4,
+    "desc": "V 型修复：未翻空事件 5/5 V 型 + 急跌 T+20 全正规律；确认信号若快速集齐，新买家接棒，价格压力反转（P1/P7 文献）。"
+   }
+  ],
+  "weeks": [
+   {
+    "date": "2026-07-31",
+    "p10": 3867.6,
+    "p50": 4033.7,
+    "p90": 4218.1,
+    "bear": 3981.9,
+    "base": 4019.0,
+    "bull": 4154.9
+   },
+   {
+    "date": "2026-08-07",
+    "p10": 3784.2,
+    "p50": 4007.1,
+    "p90": 4298.8,
+    "bear": 3942.3,
+    "base": 3968.7,
+    "bull": 4248.6
+   },
+   {
+    "date": "2026-08-14",
+    "p10": 3711.9,
+    "p50": 3982.9,
+    "p90": 4379.7,
+    "bear": 3913.4,
+    "base": 3919.6,
+    "bull": 4338.7
+   },
+   {
+    "date": "2026-08-21",
+    "p10": 3658.3,
+    "p50": 3951.8,
+    "p90": 4459.3,
+    "bear": 3889.8,
+    "base": 3875.2,
+    "bull": 4421.7
+   },
+   {
+    "date": "2026-08-28",
+    "p10": 3696.1,
+    "p50": 4018.2,
+    "p90": 4562.0,
+    "bear": 3887.9,
+    "base": 3969.6,
+    "bull": 4522.7
+   },
+   {
+    "date": "2026-09-04",
+    "p10": 3719.3,
+    "p50": 4085.7,
+    "p90": 4659.0,
+    "bear": 3857.9,
+    "base": 4082.0,
+    "bull": 4615.9
+   },
+   {
+    "date": "2026-09-11",
+    "p10": 3734.7,
+    "p50": 4167.6,
+    "p90": 4768.5,
+    "bear": 3848.8,
+    "base": 4191.8,
+    "bull": 4714.4
+   },
+   {
+    "date": "2026-09-18",
+    "p10": 3725.1,
+    "p50": 4269.7,
+    "p90": 4880.8,
+    "bear": 3824.4,
+    "base": 4314.6,
+    "bull": 4825.7
+   },
+   {
+    "date": "2026-09-25",
+    "p10": 3716.5,
+    "p50": 4376.4,
+    "p90": 4980.1,
+    "bear": 3806.1,
+    "base": 4428.0,
+    "bull": 4918.8
+   },
+   {
+    "date": "2026-10-02",
+    "p10": 3708.9,
+    "p50": 4495.6,
+    "p90": 5070.6,
+    "bear": 3789.1,
+    "base": 4550.6,
+    "bull": 5015.6
+   },
+   {
+    "date": "2026-10-09",
+    "p10": 3704.9,
+    "p50": 4622.5,
+    "p90": 5175.8,
+    "bear": 3779.5,
+    "base": 4669.1,
+    "bull": 5125.3
+   },
+   {
+    "date": "2026-10-16",
+    "p10": 3701.9,
+    "p50": 4760.4,
+    "p90": 5276.3,
+    "bear": 3766.1,
+    "base": 4804.7,
+    "bull": 5239.6
+   },
+   {
+    "date": "2026-10-23",
+    "p10": 3710.4,
+    "p50": 4904.0,
+    "p90": 5375.0,
+    "bear": 3756.0,
+    "base": 4934.7,
+    "bull": 5355.3
+   }
+  ]
+ },
+ "series": {
+  "dates": [
+   "2023-07-14",
+   "2023-07-21",
+   "2023-07-28",
+   "2023-08-04",
+   "2023-08-11",
+   "2023-08-18",
+   "2023-08-25",
+   "2023-09-01",
+   "2023-09-08",
+   "2023-09-15",
+   "2023-09-22",
+   "2023-09-29",
+   "2023-10-13",
+   "2023-10-20",
+   "2023-10-27",
+   "2023-11-03",
+   "2023-11-10",
+   "2023-11-17",
+   "2023-11-24",
+   "2023-12-01",
+   "2023-12-08",
+   "2023-12-15",
+   "2023-12-22",
+   "2023-12-29",
+   "2024-01-05",
+   "2024-01-12",
+   "2024-01-19",
+   "2024-01-26",
+   "2024-02-02",
+   "2024-02-09",
+   "2024-02-23",
+   "2024-03-01",
+   "2024-03-08",
+   "2024-03-15",
+   "2024-03-22",
+   "2024-03-29",
+   "2024-04-05",
+   "2024-04-12",
+   "2024-04-19",
+   "2024-04-26",
+   "2024-05-03",
+   "2024-05-10",
+   "2024-05-17",
+   "2024-05-24",
+   "2024-05-31",
+   "2024-06-07",
+   "2024-06-14",
+   "2024-06-21",
+   "2024-06-28",
+   "2024-07-05",
+   "2024-07-12",
+   "2024-07-19",
+   "2024-07-26",
+   "2024-08-02",
+   "2024-08-09",
+   "2024-08-16",
+   "2024-08-23",
+   "2024-08-30",
+   "2024-09-06",
+   "2024-09-13",
+   "2024-09-20",
+   "2024-09-27",
+   "2024-10-04",
+   "2024-10-11",
+   "2024-10-18",
+   "2024-10-25",
+   "2024-11-01",
+   "2024-11-08",
+   "2024-11-15",
+   "2024-11-22",
+   "2024-11-29",
+   "2024-12-06",
+   "2024-12-13",
+   "2024-12-20",
+   "2024-12-27",
+   "2025-01-03",
+   "2025-01-10",
+   "2025-01-17",
+   "2025-01-24",
+   "2025-01-31",
+   "2025-02-07",
+   "2025-02-14",
+   "2025-02-21",
+   "2025-02-28",
+   "2025-03-07",
+   "2025-03-14",
+   "2025-03-21",
+   "2025-03-28",
+   "2025-04-04",
+   "2025-04-11",
+   "2025-04-18",
+   "2025-04-25",
+   "2025-05-02",
+   "2025-05-09",
+   "2025-05-16",
+   "2025-05-23",
+   "2025-05-30",
+   "2025-06-06",
+   "2025-06-13",
+   "2025-06-20",
+   "2025-06-27",
+   "2025-07-04",
+   "2025-07-11",
+   "2025-07-18",
+   "2025-07-25",
+   "2025-08-01",
+   "2025-08-08",
+   "2025-08-15",
+   "2025-08-22",
+   "2025-08-29",
+   "2025-09-05",
+   "2025-09-12",
+   "2025-09-19",
+   "2025-09-26",
+   "2025-10-03",
+   "2025-10-10",
+   "2025-10-17",
+   "2025-10-24",
+   "2025-10-31",
+   "2025-11-07",
+   "2025-11-14",
+   "2025-11-21",
+   "2025-11-28",
+   "2025-12-05",
+   "2025-12-12",
+   "2025-12-19",
+   "2025-12-26",
+   "2026-01-02",
+   "2026-01-09",
+   "2026-01-16",
+   "2026-01-23",
+   "2026-01-30",
+   "2026-02-06",
+   "2026-02-13",
+   "2026-02-27",
+   "2026-03-06",
+   "2026-03-13",
+   "2026-03-20",
+   "2026-03-27",
+   "2026-04-03",
+   "2026-04-10",
+   "2026-04-17",
+   "2026-04-24",
+   "2026-05-01",
+   "2026-05-08",
+   "2026-05-15",
+   "2026-05-22",
+   "2026-05-29",
+   "2026-06-05",
+   "2026-06-12",
+   "2026-06-19",
+   "2026-06-26",
+   "2026-07-03",
+   "2026-07-10",
+   "2026-07-17",
+   "2026-07-24"
+  ],
+  "gold_usd": [
+   1971.1,
+   1983.8,
+   1982.6,
+   1969.3,
+   1956.7,
+   1948.7,
+   1958.6,
+   1986.8,
+   1981.0,
+   2007.9,
+   2010.4,
+   1904.7,
+   1933.0,
+   2018.9,
+   2022.5,
+   2032.2,
+   2004.8,
+   2034.1,
+   2023.2,
+   2066.7,
+   2058.2,
+   2071.3,
+   2087.6,
+   2101.0,
+   2089.5,
+   2079.7,
+   2073.4,
+   2077.2,
+   2091.2,
+   2075.6,
+   2065.0,
+   2089.4,
+   2189.6,
+   2192.2,
+   2199.3,
+   2272.5,
+   2311.4,
+   2437.6,
+   2429.5,
+   2373.6,
+   2344.8,
+   2394.7,
+   2417.6,
+   2368.2,
+   2378.0,
+   2403.2,
+   2341.6,
+   2382.8,
+   2353.5,
+   2387.8,
+   2416.6,
+   2404.2,
+   2383.1,
+   2481.2,
+   2434.7,
+   2457.8,
+   2495.4,
+   2515.7,
+   2513.9,
+   2554.5,
+   2595.3,
+   2649.2,
+   2638.3,
+   2629.0,
+   2701.6,
+   2715.0,
+   2741.4,
+   2655.4,
+   2547.1,
+   2678.3,
+   2640.7,
+   2627.3,
+   2660.9,
+   2608.5,
+   2636.2,
+   2663.7,
+   2688.5,
+   2707.5,
+   2771.6,
+   2758.7,
+   2852.6,
+   2944.3,
+   2932.1,
+   2864.8,
+   2921.5,
+   2976.7,
+   3031.8,
+   3087.9,
+   3156.5,
+   3229.6,
+   3360.3,
+   3353.5,
+   3337.6,
+   3376.2,
+   3220.4,
+   3363.4,
+   3321.5,
+   3374.4,
+   3430.7,
+   3368.4,
+   3310.2,
+   3349.3,
+   3339.7,
+   3351.9,
+   3359.5,
+   3309.3,
+   3390.9,
+   3350.2,
+   3350.7,
+   3409.9,
+   3538.9,
+   3625.5,
+   3614.4,
+   3719.6,
+   3809.2,
+   3913.6,
+   4352.2,
+   4086.5,
+   4027.3,
+   4009.3,
+   4153.6,
+   4046.0,
+   4168.2,
+   4208.2,
+   4251.2,
+   4309.4,
+   4470.4,
+   4336.1,
+   4473.4,
+   4609.3,
+   4959.6,
+   5208.3,
+   4903.2,
+   4992.9,
+   5183.9,
+   5138.4,
+   5101.6,
+   4705.0,
+   4472.7,
+   4674.8,
+   4770.6,
+   4804.5,
+   4701.3,
+   4617.7,
+   4720.1,
+   4595.3,
+   4541.6,
+   4527.8,
+   4479.7,
+   4173.8,
+   4300.5,
+   4043.3,
+   4173.9,
+   4118.2,
+   4004.9,
+   4071.3
+  ],
+  "anchor_implied": [
+   1024.7,
+   1048.0,
+   1027.0,
+   1006.4,
+   977.5,
+   947.2,
+   951.5,
+   951.5,
+   949.3,
+   938.7,
+   919.9,
+   893.4,
+   875.6,
+   842.7,
+   850.3,
+   897.5,
+   875.6,
+   901.5,
+   891.4,
+   934.5,
+   930.3,
+   1001.9,
+   997.4,
+   995.2,
+   970.9,
+   1001.9,
+   975.3,
+   966.5,
+   973.1,
+   951.5,
+   942.9,
+   962.2,
+   975.3,
+   936.6,
+   962.2,
+   960.1,
+   934.5,
+   911.7,
+   891.4,
+   885.4,
+   877.5,
+   901.5,
+   913.7,
+   905.6,
+   901.5,
+   907.6,
+   928.2,
+   930.3,
+   917.9,
+   934.5,
+   947.2,
+   949.3,
+   949.3,
+   986.3,
+   968.7,
+   975.3,
+   1004.2,
+   986.3,
+   1001.9,
+   1027.0,
+   1027.0,
+   1022.4,
+   1015.5,
+   988.5,
+   984.1,
+   942.9,
+   926.1,
+   945.1,
+   913.7,
+   919.9,
+   951.5,
+   953.6,
+   919.9,
+   887.4,
+   877.5,
+   881.5,
+   865.8,
+   893.4,
+   893.4,
+   907.6,
+   919.9,
+   926.1,
+   934.5,
+   964.4,
+   936.6,
+   932.4,
+   951.5,
+   955.7,
+   981.9,
+   877.5,
+   911.7,
+   930.3,
+   947.2,
+   917.9,
+   915.8,
+   897.5,
+   919.9,
+   893.4,
+   907.6,
+   924.1,
+   934.5,
+   930.3,
+   922.0,
+   928.2,
+   942.9,
+   955.7,
+   960.1,
+   945.1,
+   966.5,
+   973.1,
+   993.0,
+   999.7,
+   988.5,
+   973.1,
+   977.5,
+   988.5,
+   988.5,
+   993.0,
+   975.3,
+   970.9,
+   964.4,
+   973.1,
+   979.7,
+   960.1,
+   949.3,
+   951.5,
+   953.6,
+   949.3,
+   955.7,
+   953.6,
+   951.5,
+   955.7,
+   960.1,
+   984.1,
+   995.2,
+   977.5,
+   951.5,
+   932.4,
+   907.6,
+   936.6,
+   945.1,
+   955.7,
+   957.9,
+   947.2,
+   949.3,
+   913.7,
+   901.5,
+   919.9,
+   895.5,
+   899.5,
+   891.4,
+   897.5,
+   881.5,
+   869.7,
+   871.6,
+   863.8
+  ],
+  "gap_pct": [
+   92.4,
+   89.3,
+   93.0,
+   95.7,
+   100.2,
+   105.7,
+   105.9,
+   108.8,
+   108.7,
+   113.9,
+   118.5,
+   113.2,
+   120.8,
+   139.6,
+   137.8,
+   126.4,
+   129.0,
+   125.6,
+   127.0,
+   121.1,
+   121.2,
+   106.7,
+   109.3,
+   111.1,
+   115.2,
+   107.6,
+   112.6,
+   114.9,
+   114.9,
+   118.1,
+   119.0,
+   117.1,
+   124.5,
+   134.1,
+   128.6,
+   136.7,
+   147.3,
+   167.4,
+   172.5,
+   168.1,
+   167.2,
+   165.6,
+   164.6,
+   161.5,
+   163.8,
+   164.8,
+   152.3,
+   156.1,
+   156.4,
+   155.5,
+   155.1,
+   153.2,
+   151.0,
+   151.6,
+   151.3,
+   152.0,
+   148.5,
+   155.1,
+   150.9,
+   148.7,
+   152.7,
+   159.1,
+   159.8,
+   166.0,
+   174.5,
+   187.9,
+   196.0,
+   181.0,
+   178.8,
+   191.1,
+   177.5,
+   175.5,
+   189.3,
+   193.9,
+   200.4,
+   202.2,
+   210.5,
+   203.0,
+   210.2,
+   204.0,
+   210.1,
+   217.9,
+   213.8,
+   197.1,
+   211.9,
+   219.2,
+   218.6,
+   223.1,
+   221.5,
+   268.0,
+   268.6,
+   260.5,
+   252.4,
+   267.8,
+   251.6,
+   274.8,
+   261.1,
+   277.7,
+   278.0,
+   264.5,
+   254.2,
+   260.0,
+   262.2,
+   261.1,
+   256.3,
+   246.3,
+   253.2,
+   254.5,
+   246.7,
+   250.4,
+   256.4,
+   262.7,
+   265.6,
+   282.3,
+   289.7,
+   295.9,
+   340.3,
+   311.5,
+   312.9,
+   312.9,
+   330.7,
+   315.8,
+   325.5,
+   338.3,
+   347.8,
+   352.9,
+   368.8,
+   356.8,
+   368.1,
+   383.4,
+   421.3,
+   444.9,
+   410.7,
+   407.4,
+   420.9,
+   425.7,
+   436.2,
+   404.6,
+   392.8,
+   399.1,
+   404.8,
+   402.7,
+   390.8,
+   387.5,
+   397.2,
+   402.9,
+   403.8,
+   392.2,
+   400.3,
+   364.0,
+   382.4,
+   350.5,
+   373.5,
+   373.5,
+   359.5,
+   371.3
+  ],
+  "m_bp": [
+   30.8,
+   30.0,
+   29.0,
+   28.2,
+   28.9,
+   27.8,
+   26.4,
+   25.2,
+   25.3,
+   24.8,
+   23.7,
+   22.1,
+   25.7,
+   25.6,
+   25.5,
+   25.2,
+   25.3,
+   22.0,
+   21.7,
+   21.1,
+   20.8,
+   21.3,
+   21.6,
+   21.6,
+   21.5,
+   21.5,
+   21.4,
+   21.2,
+   21.3,
+   20.4,
+   18.5,
+   18.3,
+   19.7,
+   19.1,
+   18.2,
+   18.7,
+   19.4,
+   19.0,
+   18.9,
+   18.3,
+   18.5,
+   18.5,
+   18.4,
+   18.7,
+   18.6,
+   18.5,
+   19.0,
+   19.0,
+   18.8,
+   19.2,
+   19.2,
+   19.9,
+   21.0,
+   21.0,
+   20.8,
+   21.7,
+   22.4,
+   23.3,
+   23.4,
+   24.1,
+   24.7,
+   25.8,
+   20.9,
+   22.2,
+   22.1,
+   22.4,
+   22.6,
+   23.0,
+   26.4,
+   26.3,
+   26.2,
+   26.3,
+   25.3,
+   25.1,
+   25.1,
+   25.1,
+   24.6,
+   24.7,
+   25.1,
+   25.0,
+   25.8,
+   25.0,
+   26.0,
+   26.0,
+   27.9,
+   28.4,
+   30.6,
+   31.1,
+   18.4,
+   22.0,
+   19.9,
+   20.1,
+   24.7,
+   24.2,
+   24.3,
+   21.3,
+   22.0,
+   22.1,
+   22.2,
+   22.6,
+   23.2,
+   22.9,
+   22.9,
+   21.2,
+   17.5,
+   19.4,
+   19.3,
+   18.6,
+   18.8,
+   19.0,
+   20.7,
+   21.1,
+   20.6,
+   20.4,
+   18.6,
+   17.7,
+   9.3,
+   4.6,
+   -3.3,
+   -4.1,
+   -8.6,
+   -8.1,
+   -5.1,
+   -4.4,
+   -5.1,
+   -5.5,
+   -6.5,
+   -4.4,
+   -4.9,
+   -4.1,
+   -4.7,
+   -12.9,
+   -3.0,
+   0.1,
+   -0.7,
+   -1.9,
+   -2.2,
+   -6.1,
+   2.5,
+   10.9,
+   7.6,
+   10.9,
+   13.0,
+   7.9,
+   7.8,
+   8.0,
+   10.8,
+   10.0,
+   7.6,
+   10.8,
+   9.6,
+   7.9,
+   6.7,
+   5.8,
+   4.7,
+   4.7
+  ],
+  "cta_pos": [
+   0.69,
+   1.46,
+   1.85,
+   0.9,
+   -1.0,
+   -1.0,
+   -1.0,
+   2.0,
+   2.0,
+   1.53,
+   1.52,
+   -0.37,
+   -0.29,
+   0.56,
+   0.56,
+   0.82,
+   0.65,
+   1.64,
+   1.72,
+   1.48,
+   1.23,
+   0.83,
+   0.83,
+   0.86,
+   0.96,
+   1.0,
+   0.73,
+   0.74,
+   1.5,
+   0.7,
+   0.0,
+   2.0,
+   1.31,
+   1.44,
+   1.03,
+   0.96,
+   1.02,
+   0.72,
+   0.68,
+   0.59,
+   0.3,
+   0.66,
+   0.77,
+   0.37,
+   0.38,
+   0.76,
+   0.0,
+   0.82,
+   0.0,
+   0.88,
+   1.34,
+   0.81,
+   0.37,
+   0.69,
+   0.62,
+   0.77,
+   0.9,
+   1.02,
+   1.34,
+   1.16,
+   1.21,
+   1.24,
+   1.22,
+   1.05,
+   1.06,
+   1.11,
+   0.97,
+   0.47,
+   0.0,
+   0.67,
+   0.64,
+   0.34,
+   0.85,
+   0.0,
+   0.0,
+   1.25,
+   1.33,
+   1.56,
+   1.56,
+   1.48,
+   0.87,
+   0.83,
+   0.74,
+   0.34,
+   0.93,
+   0.99,
+   1.12,
+   1.24,
+   1.22,
+   0.58,
+   0.55,
+   0.41,
+   0.41,
+   0.45,
+   0.2,
+   0.43,
+   0.52,
+   0.56,
+   0.8,
+   1.1,
+   0.0,
+   0.52,
+   0.0,
+   1.05,
+   0.99,
+   0.0,
+   1.05,
+   0.0,
+   0.0,
+   1.51,
+   1.37,
+   1.32,
+   1.06,
+   0.93,
+   0.94,
+   0.59,
+   0.51,
+   0.39,
+   0.17,
+   0.2,
+   0.46,
+   0.26,
+   0.66,
+   0.66,
+   0.76,
+   1.01,
+   0.94,
+   0.79,
+   0.73,
+   0.72,
+   0.6,
+   0.33,
+   0.19,
+   0.09,
+   0.19,
+   0.19,
+   0.22,
+   0.0,
+   -0.11,
+   0.0,
+   0.11,
+   0.11,
+   0.0,
+   0.0,
+   0.0,
+   -0.39,
+   -0.38,
+   -0.32,
+   -0.34,
+   -0.25,
+   -0.22,
+   -0.41,
+   -0.39,
+   -0.5,
+   -0.6,
+   -0.33
+  ],
+  "corr_pctile": [
+   23.0,
+   23.0,
+   14.0,
+   13.0,
+   9.0,
+   13.0,
+   13.0,
+   28.0,
+   12.0,
+   8.0,
+   1.0,
+   0.0,
+   0.0,
+   0.0,
+   1.0,
+   2.0,
+   3.0,
+   5.0,
+   5.0,
+   10.0,
+   7.0,
+   8.0,
+   9.0,
+   9.0,
+   10.0,
+   49.0,
+   92.0,
+   97.0,
+   97.0,
+   96.0,
+   99.0,
+   90.0,
+   91.0,
+   90.0,
+   90.0,
+   99.0,
+   99.0,
+   98.0,
+   4.0,
+   4.0,
+   8.0,
+   8.0,
+   7.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   1.0,
+   1.0,
+   0.0,
+   1.0,
+   1.0,
+   5.0,
+   0.0,
+   1.0,
+   1.0,
+   8.0,
+   5.0,
+   5.0,
+   5.0,
+   5.0,
+   5.0,
+   5.0,
+   9.0,
+   28.0,
+   23.0,
+   25.0,
+   45.0,
+   48.0,
+   57.0,
+   57.0,
+   85.0,
+   83.0,
+   86.0,
+   86.0,
+   85.0,
+   83.0,
+   93.0,
+   90.0,
+   90.0,
+   92.0,
+   92.0,
+   83.0,
+   76.0,
+   41.0,
+   66.0,
+   73.0,
+   28.0,
+   30.0,
+   15.0,
+   20.0,
+   17.0,
+   17.0,
+   21.0,
+   4.0,
+   12.0,
+   5.0,
+   5.0,
+   15.0,
+   14.0,
+   14.0,
+   14.0,
+   17.0,
+   12.0,
+   26.0,
+   29.0,
+   29.0,
+   31.0,
+   34.0,
+   43.0,
+   43.0,
+   86.0,
+   84.0,
+   83.0,
+   89.0,
+   78.0,
+   90.0,
+   97.0,
+   97.0,
+   97.0,
+   95.0,
+   95.0,
+   92.0,
+   91.0,
+   87.0,
+   85.0,
+   80.0,
+   83.0,
+   83.0,
+   76.0,
+   72.0,
+   72.0,
+   87.0,
+   65.0,
+   66.0,
+   66.0,
+   66.0,
+   73.0,
+   69.0,
+   69.0,
+   70.0,
+   69.0,
+   65.0,
+   55.0,
+   52.0,
+   97.0,
+   94.0,
+   90.0,
+   89.0,
+   79.0,
+   83.0,
+   100.0,
+   100.0,
+   99.0,
+   99.0,
+   100.0
+  ],
+  "weekly_ret_pct": [
+   1.7,
+   0.64,
+   -0.06,
+   -0.67,
+   -0.64,
+   -0.41,
+   0.51,
+   1.44,
+   -0.29,
+   1.36,
+   0.13,
+   -5.26,
+   1.49,
+   4.44,
+   0.18,
+   0.48,
+   -1.35,
+   1.46,
+   -0.53,
+   2.15,
+   -0.41,
+   0.63,
+   0.79,
+   0.64,
+   -0.55,
+   -0.47,
+   -0.3,
+   0.18,
+   0.67,
+   -0.75,
+   -0.51,
+   1.18,
+   4.8,
+   0.12,
+   0.33,
+   3.33,
+   1.71,
+   5.46,
+   -0.33,
+   -2.3,
+   -1.22,
+   2.13,
+   0.95,
+   -2.04,
+   0.41,
+   1.06,
+   -2.56,
+   1.76,
+   -1.23,
+   1.46,
+   1.21,
+   -0.52,
+   -0.88,
+   4.12,
+   -1.87,
+   0.95,
+   1.53,
+   0.81,
+   -0.07,
+   1.62,
+   1.6,
+   2.08,
+   -0.41,
+   -0.35,
+   2.76,
+   0.5,
+   0.97,
+   -3.14,
+   -4.08,
+   5.15,
+   -1.4,
+   -0.51,
+   1.28,
+   -1.97,
+   1.06,
+   1.04,
+   0.93,
+   0.71,
+   2.37,
+   -0.47,
+   3.4,
+   3.21,
+   -0.41,
+   -2.3,
+   1.98,
+   1.89,
+   1.85,
+   1.85,
+   2.22,
+   2.31,
+   4.05,
+   -0.2,
+   -0.47,
+   1.16,
+   -4.62,
+   4.44,
+   -1.25,
+   1.59,
+   1.67,
+   -1.82,
+   -1.73,
+   1.18,
+   -0.29,
+   0.37,
+   0.23,
+   -1.49,
+   2.46,
+   -1.2,
+   0.01,
+   1.77,
+   3.78,
+   2.45,
+   -0.31,
+   2.91,
+   2.41,
+   2.74,
+   11.21,
+   -6.1,
+   -1.45,
+   -0.45,
+   3.6,
+   -2.59,
+   3.02,
+   0.96,
+   1.02,
+   1.37,
+   3.74,
+   -3.0,
+   3.17,
+   3.04,
+   7.6,
+   5.01,
+   -5.86,
+   1.83,
+   3.82,
+   -0.88,
+   -0.72,
+   -7.77,
+   -4.94,
+   4.52,
+   2.05,
+   0.71,
+   -2.15,
+   -1.78,
+   2.22,
+   -2.64,
+   -1.17,
+   -0.3,
+   -1.06,
+   -6.83,
+   3.04,
+   -5.98,
+   3.23,
+   -1.33,
+   -2.75,
+   1.66
+  ]
+ },
+ "history_events": [
+  {
+   "date": "2016-05-03",
+   "dd_pct": -6.7,
+   "d_oi_pct": -1,
+   "d_mm_oi_pct": -4.7,
+   "flip_timing": "未触发",
+   "t20_pct": 9.6,
+   "t40_pct": 9.3
+  },
+  {
+   "date": "2020-03-09",
+   "dd_pct": -12.1,
+   "d_oi_pct": -21,
+   "d_mm_oi_pct": -8.4,
+   "flip_timing": "当期(谷底当日)",
+   "t20_pct": 12.0,
+   "t40_pct": 18.5
+  },
+  {
+   "date": "2020-08-07",
+   "dd_pct": -8.3,
+   "d_oi_pct": -3,
+   "d_mm_oi_pct": -3.2,
+   "flip_timing": "未触发",
+   "t20_pct": 3.5,
+   "t40_pct": 2.0
+  },
+  {
+   "date": "2022-03-09",
+   "dd_pct": -6.2,
+   "d_oi_pct": -5,
+   "d_mm_oi_pct": -4.4,
+   "flip_timing": "滞后54交易日",
+   "t20_pct": 3.0,
+   "t40_pct": -5.1
+  },
+  {
+   "date": "2024-10-30",
+   "dd_pct": -8.5,
+   "d_oi_pct": -13,
+   "d_mm_oi_pct": -6.9,
+   "flip_timing": "未触发",
+   "t20_pct": 5.8,
+   "t40_pct": 5.7
+  },
+  {
+   "date": "2025-04-22",
+   "dd_pct": -9.6,
+   "d_oi_pct": -2,
+   "d_mm_oi_pct": -3.8,
+   "flip_timing": "未触发",
+   "t20_pct": 8.0,
+   "t40_pct": 5.2
+  },
+  {
+   "date": "2025-10-17",
+   "dd_pct": -9.7,
+   "d_oi_pct": -7,
+   "d_mm_oi_pct": -1.6,
+   "flip_timing": "未触发",
+   "t20_pct": 5.2,
+   "t40_pct": 13.4
+  },
+  {
+   "date": "2026-01-29",
+   "dd_pct": -17.1,
+   "d_oi_pct": -16,
+   "d_mm_oi_pct": -5.3,
+   "flip_timing": "滞后49交易日",
+   "t20_pct": 12.3,
+   "t40_pct": 4.7
+  }
+ ],
+ "caveats": [
+  "锚缺口幅度依赖外推模型设定，应解读为『锚失效程度的序数度量』，不构成『应该跌回多少』的估值结论（报告 M2 解读纪律）。",
+  "情景推演为方向性证据：高相关+下跌象限 n=11，急跌事件 n=8，小样本结论有效期以周计。",
+  "银数据稀疏（约 100 obs/年），仅用于周频相关性，不进入日频回归。",
+  "ETF 流量为公开数据缺口，归因中该棒次为推断；COT 与 CTA 模拟两通道构成归因骨架。",
+  "合成美元金价与伦敦现货跟踪误差 ±0.5% 以内；USDCNY 周末缺失按前值填充。",
+  "所有回测为样本内结果；前向跟踪满 20 个新观测后应复核（报告 7.4）。",
+  "M3 流量乘数回归采用周二对周二窗口（实证复现报告表 2 的唯一口径）；W-FRI 周五收益 join 会使 M 系统性偏低约 9bp。",
+  "CTA 翻空计数对最新一日敏感：报告基准日 2026-07-20 为 4/4 翻空、仓位 2.6% 分位；最新交易日价格收复 MA20 后翻空数回落，属数据演进而非口径差异。"
+ ]
+};
+
+function $(id){ try { return document.getElementById(id); } catch(e){ return null; } }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(n, d){ if(n===null||n===undefined||isNaN(n)) return '—'; return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d??1,maximumFractionDigits:d??1}); }
+function sign(n, d){ if(n===null||n===undefined||isNaN(n)) return '—'; return (n>0?'+':'')+fmt(n,d); }
+
+const NS='http://www.w3.org/2000/svg';
+function S(tag, attrs, parent){ const el=document.createElementNS(NS,tag); for(const k in attrs) el.setAttribute(k,attrs[k]); if(parent) parent.appendChild(el); return el; }
+const INK='var(--kimi-color-text-primary)', SUB='var(--kimi-color-text-tertiary)', FAINT='var(--kimi-color-text-quaternary)',
+      ACCENT='var(--kimi-color-accent)', POS='var(--kimi-color-positive)', NEG='var(--kimi-color-danger)', BORDER='var(--kimi-color-border)';
+
+function render(d){
+  if(!d || !d.price) return;
+  const p=d.price, ind=d.indicators, rg=d.regime, fc=d.forecast, sr=d.series;
+
+  $('asof').textContent = d.as_of || '—';
+
+  // P0
+  $('p-price').textContent = fmt(p.gold_usd,0);
+  const chg=$('p-chg'); chg.textContent = sign(p.week_chg_pct,2)+'%'; chg.className='chg num '+(p.week_chg_pct>=0?'up':'down');
+  $('p-stage').textContent = rg.stage || '—';
+  const c=ind.confirmation;
+  const chips=[
+    {t:'翻空≤2/4（现 '+ind.cta.flip_count+'/4）', ok:c.flip_ok},
+    {t:'相关分位<90（现 '+fmt(ind.correlation.percentile,0)+'）', ok:c.corr_ok},
+    {t:'收复MA60', ok:c.ma60_ok}
+  ];
+  $('p-chips').innerHTML = chips.map(x=>`<span class="chip"><span class="dot ${x.ok?'ok':'no'}"></span>${esc(x.t)}</span>`).join('')
+    + `<span class="confirm-count">确认信号 ${c.count}/3${c.count>=2?' · 达重建阈值':''}</span>`;
+  $('p-hint').textContent = rg.action_hint || '';
+
+  // indicator cards
+  const g=ind.anchor_gap, m=ind.flow_multiplier, cta=ind.cta, cor=ind.correlation, dd=ind.drawdown;
+  const quadTxt = cor.quadrant==='high_down'?'高相关+下跌（出清象限）':cor.quadrant==='high_up'?'高相关+上涨（篮子上行）':'低相关（正常定价）';
+  const cards=[
+    {l:'锚缺口 · vs 2016-21旧锚', v:sign(g.pct,0)+'%', s:`峰值 +${fmt(g.peak_pct,0)}% @ ${g.peak_date} · 序数度量非估值`, warn:g.pct>200},
+    {l:'流量乘数 M · 52周滚动', v:fmt(m.latest_bp,1)+'bp', s:`每1%OI净流入的价格冲击 · 52周均值 ${fmt(m.mean_bp,1)}bp`, warn:m.latest_bp<15},
+    {l:'CTA 模拟仓位', v:fmt(cta.pos,2), s:`近3年 ${fmt(cta.pos_percentile,0)}% 分位 · 信号翻空 ${cta.flip_count}/4 · σ ${fmt(cta.vol20_ann*100,0)}%`, warn:cta.pos<0},
+    {l:'金银12周相关 · 3年分位', v:fmt(cor.percentile,0)+'%', s:`corr ${fmt(cor.corr_12w,2)} · ${quadTxt}`, warn:cor.percentile>=90&&cor.direction==='down'},
+    {l:'当前回撤 · 距60日高点', v:fmt(dd.current_pct,1)+'%', s:dd.in_event?`急跌事件中 · 始于 ${dd.event_start}`:'未处于急跌事件', warn:dd.in_event}
+  ];
+  $('cards').innerHTML = cards.map(x=>`<div class="card"><span class="clabel"><span class="dot ${x.warn?'no':'ok'}"></span>${esc(x.l)}</span><output class="cvalue num">${esc(x.v)}</output><span class="csub">${esc(x.s)}</span></div>`).join('');
+
+  drawMain(sr, fc);
+  renderScenarios(fc);
+  drawMinis(sr, ind);
+  renderEvents(d.history_events||[]);
+  renderCaveats(d);
+}
+
+function drawMain(sr, fc){
+  const box=$('chart-main'); if(!box||!sr||!sr.dates) return; box.innerHTML='';
+  const W=Math.max(box.clientWidth||720, 280), H= W<520?240:330;
+  const pad={l:46,r:88,t:10,b:20};
+  const hist=sr.gold_usd, anch=sr.anchor_implied, dates=sr.dates, wk=fc.weeks||[];
+  const n=hist.length, nf=wk.length, N=n+nf;
+  const lastP=hist[n-1];
+  const xs=i=> pad.l + i*(W-pad.l-pad.r)/(N-1);
+  let lo=Infinity, hi=-Infinity;
+  const eat=v=>{ if(v==null||isNaN(v))return; if(v<lo)lo=v; if(v>hi)hi=v; };
+  hist.forEach(eat); anch.forEach(eat);
+  wk.forEach(w=>{eat(w.p10);eat(w.p90);eat(w.bull);eat(w.bear);});
+  const mg=(hi-lo)*0.06||1; lo-=mg; hi+=mg;
+  const ys=v=> pad.t + (hi-v)*(H-pad.t-pad.b)/(hi-lo);
+
+  const svg=S('svg',{viewBox:`0 0 ${W} ${H}`,width:W,height:H},box);
+  // gridlines
+  for(let k=0;k<=3;k++){ const v=lo+(hi-lo)*k/3, y=ys(v);
+    S('line',{x1:pad.l,y1:y,x2:W-pad.r+60,y2:y,stroke:BORDER,'stroke-width':0.6},svg);
+    const t=S('text',{x:pad.l-6,y:y+3,'text-anchor':'end','font-size':9.5,style:`fill:${SUB};font-variant-numeric:tabular-nums;`},svg);
+    t.textContent=fmt(v,0);
+  }
+  // x ticks ~ every 26w history + forecast end
+  for(let i=0;i<n;i+=26){ const t=S('text',{x:xs(i),y:H-5,'text-anchor':'middle','font-size':9,style:`fill:${FAINT};`},svg); t.textContent=(dates[i]||'').slice(2,7); }
+  if(nf){ const t=S('text',{x:xs(N-1),y:H-5,'text-anchor':'middle','font-size':9,style:`fill:${FAINT};`},svg); t.textContent=(wk[nf-1].date||'').slice(2,7); }
+  // forecast/history divider
+  S('line',{x1:xs(n-1),y1:pad.t,x2:xs(n-1),y2:H-pad.b,stroke:FAINT,'stroke-width':0.8,'stroke-dasharray':'3 3'},svg);
+  const dt=S('text',{x:xs(n-1)+4,y:pad.t+9,'font-size':9.5,style:`fill:${SUB};`},svg); dt.textContent='今日 →';
+
+  // band
+  if(nf){
+    let pts=`${xs(n-1)},${ys(lastP)} `;
+    wk.forEach((w,j)=>{ pts+=`${xs(n+j)},${ys(w.p90)} `; });
+    for(let j=nf-1;j>=0;j--) pts+=`${xs(n+j)},${ys(wk[j].p10)} `;
+    S('polygon',{points:pts,style:`fill:color-mix(in srgb,${ACCENT} 13%,transparent);stroke:none;`},svg);
+  }
+  const path=(arr,off)=>arr.map((v,i)=>(i?'L':'M')+xs(off+i).toFixed(1)+','+ys(v).toFixed(1)).join(' ');
+  // anchor implied
+  S('path',{d:path(anch,0),fill:'none',style:`stroke:${FAINT};`,'stroke-width':1.2,'stroke-dasharray':'4 3'},svg);
+  // price
+  S('path',{d:path(hist,0),fill:'none',style:`stroke:${INK};`,'stroke-width':1.8},svg);
+  // scenarios
+  const scn=[['base',ACCENT,1.6],['bull',POS,1.2],['bear',NEG,1.2]];
+  const ends=[];
+  scn.forEach(([k,col,wd])=>{
+    const arr=[lastP].concat(wk.map(w=>w[k]));
+    S('path',{d:path(arr,n-1),fill:'none',style:`stroke:${col};`,'stroke-width':wd,'stroke-dasharray':k==='base'?'5 3':'2 3'},svg);
+    ends.push({k,col,v:wk[nf-1][k]});
+  });
+  // direct labels at right, avoid collision
+  ends.sort((a,b)=>ys(b.v)-ys(a.v));
+  let prevY=-1e9;
+  ends.forEach(e=>{ let y=ys(e.v); if(y<prevY+12) y=prevY+12; prevY=y;
+    const t=S('text',{x:W-pad.r+8,y:y+3,'font-size':10,'font-weight':600,style:`fill:${e.col};font-variant-numeric:tabular-nums;`},svg);
+    t.textContent=fmt(e.v,0);
+  });
+  const lp=S('text',{x:xs(n-1)-4,y:ys(lastP)-6,'text-anchor':'end','font-size':10,'font-weight':600,style:`fill:${INK};font-variant-numeric:tabular-nums;`},svg);
+  lp.textContent=fmt(lastP,0);
+
+  const lg=$('main-legend');
+  lg.innerHTML=[
+    [INK,'金价（周）'],['dash '+FAINT,'旧锚隐含'],['dash '+ACCENT,'基准'],[POS,'乐观'],[NEG,'悲观'],['band','p10–p90 带']
+  ].map(([c,t])=>{
+    let st;
+    if(c==='band') st=`background:color-mix(in srgb,${ACCENT} 20%,transparent)`;
+    else if(String(c).startsWith('dash ')) st=`background:repeating-linear-gradient(90deg,${c.slice(5)} 0 4px,transparent 4px 7px)`;
+    else st=`background:${c}`;
+    return `<span><span class="sw" style="${st}"></span>${t}</span>`;
+  }).join('');
+}
+
+function renderScenarios(fc){
+  const box=$('scenarios'); if(!box) return;
+  box.innerHTML=(fc.scenarios||[]).map(s=>`
+    <div class="scn ${esc(s.key)}">
+      <span class="sprob">P ${fmt(s.prob*100,0)}%</span>
+      <span class="sname">${esc(s.name)}</span>
+      <div><span class="send num">${fmt(s.end_price,0)}</span><span class="sret num" style="color:${s.end_ret_pct>=0?POS:NEG}">${sign(s.end_ret_pct,1)}%</span></div>
+      <p class="sdesc">${esc(s.desc)}</p>
+    </div>`).join('');
+  $('method-note').textContent=fc.method_note||'';
+}
+
+function drawMinis(sr, ind){
+  const box=$('minis'); if(!box||!sr) return; box.innerHTML='';
+  const defs=[
+    {t:'锚缺口 %', arr:sr.gap_pct, d:0, th:null, last:sign(ind.anchor_gap.pct,0)+'%'},
+    {t:'流量乘数 bp', arr:sr.m_bp, d:1, th:ind.flow_multiplier.mean_bp, thT:'均值', last:fmt(ind.flow_multiplier.latest_bp,1)},
+    {t:'CTA 仓位', arr:sr.cta_pos, d:2, th:0, thT:'0轴', last:fmt(ind.cta.pos,2)},
+    {t:'金银相关分位 %', arr:sr.corr_pctile, d:0, th:90, thT:'90线', last:fmt(ind.correlation.percentile,0)}
+  ];
+  defs.forEach(df=>{
+    const card=document.createElement('div'); card.className='mini';
+    card.innerHTML=`<span class="mtitle">${df.t}<span class="mval num">${df.last}</span></span>`;
+    box.appendChild(card);
+    const W=Math.max(card.clientWidth-24||220,160), H=64, pad={l:4,r:4,t:5,b:4};
+    const svg=S('svg',{viewBox:`0 0 ${W} ${H}`,width:'100%',height:H,style:'margin-top:4px;'},card);
+    const vals=df.arr.filter(v=>v!=null&&!isNaN(v)); if(!vals.length) return;
+    let lo=Math.min(...vals), hi=Math.max(...vals);
+    if(df.th!=null){ lo=Math.min(lo,df.th); hi=Math.max(hi,df.th); }
+    const mg=(hi-lo)*0.08||1; lo-=mg; hi+=mg;
+    const xs=i=>pad.l+i*(W-pad.l-pad.r)/(vals.length-1), ys=v=>pad.t+(hi-v)*(H-pad.t-pad.b)/(hi-lo);
+    if(df.th!=null) S('line',{x1:0,y1:ys(df.th),x2:W,y2:ys(df.th),style:`stroke:${FAINT};`,'stroke-width':0.8,'stroke-dasharray':'3 3'},svg);
+    S('path',{d:vals.map((v,i)=>(i?'L':'M')+xs(i).toFixed(1)+','+ys(v).toFixed(1)).join(' '),fill:'none',style:`stroke:${INK};`,'stroke-width':1.3},svg);
+    S('circle',{cx:xs(vals.length-1),cy:ys(vals[vals.length-1]),r:2.4,style:`fill:${ACCENT};`},svg);
+  });
+}
+
+function renderEvents(ev){
+  const tb=$('events'); if(!tb) return;
+  const cls=v=>v>0?'pos':v<0?'neg':'';
+  tb.innerHTML='<tr><th>事件日</th><th>回撤</th><th>ΔOI</th><th>ΔMM/OI</th><th>CTA翻空时点</th><th>T+20</th><th>T+40</th></tr>'
+    + ev.map(e=>`<tr><td>${esc(e.date)}</td><td class="neg">${fmt(e.dd_pct,1)}%</td><td>${fmt(e.d_oi_pct,0)}%</td><td>${fmt(e.d_mm_oi_pct,1)}%</td><td style="text-align:right">${esc(e.flip_timing)}</td><td class="${cls(e.t20_pct)}">${sign(e.t20_pct,1)}%</td><td class="${cls(e.t40_pct)}">${sign(e.t40_pct,1)}%</td></tr>`).join('');
+}
+
+function renderCaveats(d){
+  const f=$('caveats'); if(!f) return;
+  const cv=(d.caveats||[]).map(x=>esc(x)).join('　·　');
+  f.innerHTML=`<p><b>解读纪律</b>　${cv}</p><p style="margin-top:6px;">框架来源：《黄金定价失真归因报告 v3》（G1锚断裂 / G2流量乘数 / G6定价权切换 / G4相关性象限 / G5接棒出清）· 数据：akshare 上海金/银、FRED、CFTC COT · 生成于 ${esc(d.generated_at||'—')} · 不构成投资建议</p>`;
+}
+
+// ===== 网页版配置 =====
+const GITHUB_REPO = 'https://github.com/corgipotato-cyber/gold-monitor';
+let CURRENT_DATA = INITIAL_DATA;  // fetch 失败时的内嵌兜底
+
+(function init(){
+  try{
+    const a=document.getElementById('repo-link'); if(a) a.href=GITHUB_REPO;
+    render(CURRENT_DATA);
+    let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ try{ render(CURRENT_DATA); }catch(e){} },180); });
+    fetch('data.json?ts='+Date.now())
+      .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(d=>{ if(d && d.as_of){ CURRENT_DATA=d; render(d); } })
+      .catch(()=>{ /* 数据文件不可达时保留内嵌兜底数据 */ });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+name: update-gold-monitor-data
+
+on:
+  schedule:
+    # 每天 UTC 10:40（北京时间 18:40，上金所收盘后）
+    - cron: "40 10 * * *"
+    # 每周六 UTC 01:20（北京时间 09:20，CFTC COT 发布后）
+    - cron: "20 1 * * 6"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r pipeline/requirements.txt || \
+          pip install -r pipeline/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+      - name: Run pipeline
+        run: python pipeline/monitor_web.py
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json data/
+          if git diff --staged --quiet; then
+            echo "no changes"
+          else
+            git commit -m "chore(data): 自动更新监测数据 $(date -u +%Y-%m-%d)"
+            git push
+          fi
