@@ -1,0 +1,3 @@
+# gold-monitor
+
+初始化中……
