@@ -1,6 +1,6 @@
 {
  "as_of": "2026-08-14",
- "generated_at": "2026-08-14T19:30:57+08:00",
+ "generated_at": "2026-08-15T10:24:26+08:00",
  "price": {
   "gold_usd": 4318.1,
   "gold_cny": 940.72,
@@ -23,9 +23,9 @@
    "r2_fit": 0.861
   },
   "flow_multiplier": {
-   "latest_bp": -1.2,
-   "mean_bp": 24.4,
-   "full_sample_bp": 23.0,
+   "latest_bp": 3.0,
+   "mean_bp": 24.3,
+   "full_sample_bp": 23.1,
    "min_note": "滚动 52 周窗口；最新值低位=期货通道边际定价影响减弱，卖压来自 CTA 棒"
   },
   "cta": {
@@ -1008,7 +1008,7 @@
    5.0,
    1.2,
    -1.2,
-   -1.2
+   3.0
   ],
   "cta_pos": [
    0.9,
